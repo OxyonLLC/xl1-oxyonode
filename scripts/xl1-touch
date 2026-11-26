@@ -38,7 +38,7 @@ ABS_X, ABS_Y = 0x00, 0x01
 
 DEVICE = os.environ.get("XL1_TOUCH_DEVICE", "")
 STATE = os.environ.get("XL1_TOUCH_STATE", "/run/xl1-screen/page")
-PAGES = int(os.environ.get("XL1_TOUCH_PAGES", "5"))
+PAGES = int(os.environ.get("XL1_TOUCH_PAGES", "6"))
 LONG_PRESS = float(os.environ.get("XL1_TOUCH_LONG_PRESS", "0.7"))
 # Themes for xl1-screen-gfx, written next to the page file. The text console ignores it.
 THEME_PRESS = float(os.environ.get("XL1_TOUCH_THEME_PRESS", "3.0"))

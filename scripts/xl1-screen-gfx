@@ -40,8 +40,8 @@ STATE_DIR = os.environ.get("XL1_SCREEN_STATE_DIR", "/run/xl1-screen")
 INTERVAL = float(os.environ.get("XL1_SCREEN_INTERVAL", "5"))
 THEMES = ("hybrid", "retro", "modern")
 DEFAULT_THEME = os.environ.get("XL1_SCREEN_THEME", "hybrid")
-PAGES = 5
-PAGE_NAMES = ("OVERVIEW", "RACE", "TREND", "REWARDS", "THE PI")
+PAGES = 6
+PAGE_NAMES = ("OVERVIEW", "RACE", "TREND", "REWARDS", "THE PI", "SOFTWARE")
 
 # ── data helpers ──────────────────────────────────────────────────────────────
 
@@ -310,14 +310,24 @@ def page_overview(c: Canvas, s):
     c.label((20, 50), "blocks produced, lifetime")
     c.text((20, 68), group(blocks), 64 if big == "modern" else 54, p["accent"],
            style="smooth" if big == "modern" else "pixel")
-    rank = dig(s, "peers", "self", "rank", default="—")
-    share = dig(s, "peers", "self", "sharePercent", default=0)
+    # Lead with the last hour, the same rank oxyon.io and the dashboard show (API v1);
+    # the lifetime rank from this node's scan is kept, small and labelled.
+    h1 = dig(s, "standing", "windows", "1h", default=None) or {}
+    life_rank = dig(s, "peers", "self", "rank", default="—")
     producers = dig(s, "peers", "producers", default="—")
-    cards = [
-        ("rank", f"#{rank}", f"of {producers}"),
-        ("share", f"{num(share):.2f}%", "of mainnet"),
-        ("per hour", f"{num(dig(s, 'derived', 'blocksPerHourNode')):.0f}", "blocks"),
-    ]
+    if h1.get("rank"):
+        cards = [
+            ("rank · 1h", f"#{h1['rank']}", f"of {h1.get('of', '—')} · life #{life_rank}"),
+            ("share · 1h", f"{num(h1.get('sharePercent')):.1f}%", f"of {group(h1.get('total'))} blocks"),
+            ("wins · 1h", f"{num(h1.get('blocks')):.0f}", "blocks"),
+        ]
+    else:  # no reading from oxyon.io yet: say plainly that this is the lifetime rank
+        share = dig(s, "peers", "self", "sharePercent", default=0)
+        cards = [
+            ("rank · lifetime", f"#{life_rank}", f"of {producers}"),
+            ("share · lifetime", f"{num(share):.2f}%", "of mainnet"),
+            ("per hour", f"{num(dig(s, 'derived', 'blocksPerHourNode')):.0f}", "blocks"),
+        ]
     for i, (k, v, sub) in enumerate(cards):
         x = 20 + i * 150
         c.box((x, 160, x + 138, 236), fill=p["panel"], outline=p["grid"] if c.theme != "retro" else p["accent2"])
@@ -449,7 +459,43 @@ def page_pi(c: Canvas, s):
         c.text((140, y), v, 16, p["fg"] if good else p["warn"])
 
 
-PAGE_FUNCS = (page_overview, page_race, page_trend, page_rewards, page_pi)
+def page_software(c: Canvas, s):
+    """What runs here and whether it is current: what a visitor checks first."""
+    p = c.p
+    sw = dig(s, "software", default={}) or {}
+    rel = dig(s, "release", default={}) or {}
+    cli = sw.get("cli") or rel.get("installed") or "?"
+    lag = sw.get("cliLag") or rel.get("lag")
+    latest = sw.get("cliLatest") or rel.get("latest")
+    col = p["good"] if lag == "current" else (p["warn"] if lag in ("behind", "ahead") else p["fg"])
+    big = c.theme if c.theme != "hybrid" else "modern"
+    c.label((20, 50), "xl1-cli in the running producer")
+    c.text((20, 66), f"v{cli}", 44 if big == "modern" else 38, col, style="smooth" if big == "modern" else "pixel")
+    status = "current" if lag == "current" else (f"{latest} available" if lag == "behind" else (f"ahead of {latest}" if lag == "ahead" else "unknown"))
+    c.text((250, 84), status, 18, col)
+    osi = dig(s, "node", "os", default=None) or {}
+    upd = osi.get("updates")
+    started = sw.get("producerStartedAt")
+    since = None
+    if started:
+        try:
+            since = (datetime.now(timezone.utc) - datetime.fromisoformat(started.replace("Z", "+00:00"))).total_seconds()
+        except ValueError:
+            since = None
+    rows = [
+        ("polling", f"{sw['interval']} ms · {sw.get('role') or '?'}" if sw.get("interval") else "unknown", bool(sw.get("interval"))),
+        ("producer up", uptime_text(since) if since is not None else "?", since is not None),
+        ("dashboard", str(dig(s, "build", "version", default="?")), True),
+        ("os updates", "none pending" if upd == 0 else (f"{upd} pending" + (f" · {osi.get('securityUpdates')} security" if osi.get("securityUpdates") else "") if upd else "unknown"), upd == 0),
+        ("reboot", "required" if osi.get("rebootRequired") else "not needed", not osi.get("rebootRequired")),
+    ]
+    for i, (k, v, good) in enumerate(rows):
+        y = 140 + i * 30
+        c.label((20, y + 4), k)
+        c.text((140, y), v, 17, p["fg"] if good else p["warn"])
+
+
+PAGE_FUNCS = (page_overview, page_race, page_trend, page_rewards, page_pi, page_software)
 
 
 def render(s, theme: str, page: int) -> Image.Image:

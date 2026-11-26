@@ -368,6 +368,29 @@ if [[ "${CLI_CACHED_ID}" != "${IMAGE_ID}" ]] || (( $(cache_age "${CLI_CACHE}") >
   fi
 fi
 
+# ------------------------------------------------------------ producer config
+#
+# The polling interval and role the RUNNING producer loaded, read from the
+# config the image renders at start (/tmp/xl1-preset.xyo.config.json), not
+# from the preset file on disk: a file edited without a restart would
+# otherwise be reported as live. Keyed on the container ID and start time,
+# because an interval change recreates the container but keeps the image.
+# Only these three values leave this block; the rendered config also holds
+# the mnemonic, so it is never written anywhere.
+CFG_CACHE="${STATE_DIR}/.producer-config"
+CFG_KEY="$(docker inspect -f '{{.Id}} {{.State.StartedAt}}' "${CONTAINER}" 2>/dev/null || true)"
+CFG_CACHED_KEY=""; CFG_INTERVAL=""; CFG_ROLE=""; CFG_STARTED=""
+[[ -s "${CFG_CACHE}" ]] && IFS=$'\t' read -r CFG_CACHED_KEY CFG_INTERVAL CFG_ROLE CFG_STARTED < "${CFG_CACHE}"
+if [[ -n "${CFG_KEY}" && "${CFG_CACHED_KEY}" != "${CFG_KEY}" ]]; then
+  I="$(docker exec "${CONTAINER}" cat /tmp/xl1-preset.xyo.config.json 2>/dev/null \
+       | grep -oE '"blockProductionCheckInterval"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+$' | head -n1)"
+  R="$(docker exec "${CONTAINER}" printenv XL1_ROLE 2>/dev/null | tr -cd 'a-z0-9-' | head -c 40)"
+  if [[ "${I}" =~ ^[0-9]+$ ]]; then
+    CFG_INTERVAL="${I}"; CFG_ROLE="${R}"; CFG_STARTED="${CFG_KEY#* }"
+    printf '%s\t%s\t%s\t%s\n' "${CFG_KEY}" "${CFG_INTERVAL}" "${CFG_ROLE}" "${CFG_STARTED}" > "${CFG_CACHE}"
+  fi
+fi
+
 # ------------------------------------------------------------- power/throttle
 #
 # The dashboard reads the throttle flags from
@@ -659,6 +682,10 @@ fi
   fi
 
   [[ -n "${CLI_INSTALLED}" ]] && printf '"cliVersion":"%s",' "$(json_escape "${CLI_INSTALLED}")"
+  if [[ "${CFG_INTERVAL}" =~ ^[0-9]+$ ]]; then
+    printf '"producerConfig":{"interval":%s,"role":"%s","startedAt":"%s"},' \
+      "${CFG_INTERVAL}" "$(json_escape "${CFG_ROLE}")" "$(json_escape "${CFG_STARTED}")"
+  fi
   [[ "${THROTTLE_RAW}" =~ ^0x[0-9a-fA-F]+$ ]] && printf '"throttleRaw":"%s",' "${THROTTLE_RAW}"
 
   if [[ -n "${OS_TOTAL}" ]]; then
