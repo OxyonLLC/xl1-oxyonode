@@ -685,10 +685,18 @@ older release over the network at exactly the moment the node was already down.
 
 ## Moving the producer to another machine
 
-A Pi 3 B+ builds a block in roughly seventeen seconds against a one-second
-budget. The chain finalizes past each candidate before it is submitted, which
-the log reports as `behind-finalized-head`, and no setting changes it. If your
-node is healthy, staked, allowlisted and still landing nothing, this is why.
+**Measured September 2026, on older producer software:** a Pi 3 B+ built a block
+in roughly seventeen seconds against a one-second budget. The chain finalized
+past each candidate before it was submitted, which the log reports as
+`behind-finalized-head`. If your node is healthy, staked, allowlisted and still
+landing nothing, check this first, and check your producer version.
+
+**Observed 26 November 2026:** with producer software 5.8.4 and a 400 ms
+production check interval, the Pi 3 B+ `ca08…23b3` landed 906 Mainnet blocks in
+24 hours (#7 of 11 producers, 8.1% of blocks) and 6,896 in 7 days (#5 of 11,
+9.5%), on par with desktop producers (oxyon.io API v1 `/producers`). That is one
+well-tuned node, not a guarantee: results depend on software version, settings
+and network.
 
 **To a Pi 4 or 5** — no rebuild. The arm64 images already run there; copy the
 bundle across and `sudo ./provision.sh`.
@@ -968,8 +976,9 @@ sudo CPU_GOVERNOR= ./provision.sh            # leave the governor alone entirely
 
 This is **not** an overclock. The ceiling is unchanged at 1400 MHz; only the
 floor moves. There is no stability or corruption risk — the cost is idle power
-and a little more heat, which is a trade worth making on a node that builds a
-block in seventeen seconds against a one-second budget.
+and a little more heat, which is a trade worth making on a node that has to
+build blocks inside a one-second budget (see [Moving the producer to another
+machine](#moving-the-producer-to-another-machine) for how the Pi 3 B+ fares).
 
 The governor lives in sysfs and resets on every boot, so
 `xl1-cpu-governor.service` reapplies it. It refuses a governor the kernel does
@@ -986,9 +995,11 @@ silent corruption on the card the wallet seed lives on.
 sudo ARM_FREQ=1450 OVER_VOLTAGE=4 ./provision.sh
 ```
 
-A 3 B+ runs at 1400 MHz and builds a block in roughly seventeen seconds against
-a one-second budget, so clock speed is the last software lever on how often this
-node lands one. `provision.sh` refuses anything below the 1400 stock clock,
+A 3 B+ runs at 1400 MHz. On September 2026 software it built a block in roughly
+seventeen seconds against a one-second budget; on 5.8.4 it lands blocks
+competitively (see [Moving the producer to another
+machine](#moving-the-producer-to-another-machine)). Clock speed is the last
+software lever on how often this node lands one. `provision.sh` refuses anything below the 1400 stock clock,
 clamps `ARM_FREQ` at 1500 and `OVER_VOLTAGE` at 6, warns if a raised clock is
 asked for without extra voltage (it usually will not boot), and rewrites both
 keys as a block so re-running replaces the previous attempt rather than stacking
