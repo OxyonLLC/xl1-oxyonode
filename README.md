@@ -23,7 +23,7 @@ Plenty of XYO folks have an old Pi like this one. OxyoNode gives it a job.
 
 - A **Raspberry Pi 3 B+** (a Pi 4 works too), a 32 GB+ microSD card, power and network.
 - Optional: a 3.5" SPI touch panel (ILI9486 / "PiScreen" type).
-- An XL1 producer key. **XL1 Sequence**, the public test network, is open to everyone. **Producing on XL1 Mainnet** requires your producer address to be on XYO's producer allow list.
+- An XL1 producer key, **approved by XYO**: Arie adds new producers to the approved producer list, on Mainnet and on Sequence (Sequence is federated, by allow list). Arie has also said Mainnet producers would eventually be required to **stake 1,000 XYO**; approval and staking are separate steps, and staking does not get you approved. What Oxyon could confirm about each: [becoming an XL1 block producer](https://oxyon.io/xl1/staking/#becoming-a-producer).
 
 ## Who makes it
 **Oxyon LLC** ([oxyon.io](https://oxyon.io)), built by LewSales. It's open source, so bugs and questions go to this repo's issues.
