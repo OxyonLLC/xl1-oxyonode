@@ -18,6 +18,9 @@ Plenty of XYO folks have an old Pi like this one. OxyoNode gives it a job.
 - **Alerts** when something needs you, and **self-maintenance**: host security updates and a doctor command.
 
 ## What you need
+
+> **Closed, and still in alpha.** XL1 block production is not open to the public yet. XYO Network decides who may produce, and **Arie at XYO Network is the gatekeeper** for new producers, on Mainnet and on Sequence. You can set up a Pi with this kit and learn how it works, but its blocks only count once XYO has approved your producer. A beginner's guide: [Run an XL1 block producer](https://oxyon.io/docs/start/run-a-producer/).
+
 - A **Raspberry Pi 3 B+** (a Pi 4 works too), a 32 GB+ microSD card, power and network.
 - Optional: a 3.5" SPI touch panel (ILI9486 / "PiScreen" type).
 - An XL1 producer key. **XL1 Sequence**, the public test network, is open to everyone. **Producing on XL1 Mainnet** requires your producer address to be on XYO's producer allow list.
